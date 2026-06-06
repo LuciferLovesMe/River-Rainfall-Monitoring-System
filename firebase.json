@@ -1,0 +1,35 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "pascal-iot",
+          "appId": "1:319846104234:android:29a2d5a4447d6a4ec4a4d3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "pascal-iot",
+          "configurations": {
+            "android": "1:319846104234:android:29a2d5a4447d6a4ec4a4d3",
+            "ios": "1:319846104234:ios:d700a64154b9e7c3c4a4d3",
+            "macos": "1:319846104234:ios:d700a64154b9e7c3c4a4d3",
+            "web": "1:319846104234:web:19931abe83d2667ac4a4d3",
+            "windows": "1:319846104234:web:c78d0153aa22737bc4a4d3"
+          }
+        }
+      }
+    }
+  },
+  "functions": {
+    "source": "functions",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local"
+    ]
+  }
+}

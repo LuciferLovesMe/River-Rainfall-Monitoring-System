@@ -1,0 +1,31 @@
+name: onboard_app
+description: A new Flutter project.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  # Package untuk membuat Line Chart sesuai desain
+  fl_chart: ^0.65.0
+  firebase_core: ^4.9.0
+  cloud_firestore: ^6.4.1
+  firebase_auth: ^6.5.1
+  # Package untuk memunculkan notifikasi di HP
+  flutter_local_notifications: ^17.0.0
+  permission_handler: ^12.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  # Uncomment bagian ini jika aset gambar asli sudah disiapkan di dalam folder project
+  # assets:
+  #   - assets/images/
