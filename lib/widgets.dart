@@ -104,6 +104,9 @@ class WaterLevelChart extends StatelessWidget {
     DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
     DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
+    int startUnix = startOfDay.millisecondsSinceEpoch ~/ 1000;
+    int endUnix = endOfDay.millisecondsSinceEpoch ~/ 1000;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 20, 20, 20),
       decoration: BoxDecoration(
@@ -118,11 +121,11 @@ class WaterLevelChart extends StatelessWidget {
         ],
       ),
       child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('sensor_logs')
-            .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
-            .where('timestamp', isLessThanOrEqualTo: endOfDay)
-            .snapshots(),
+        // MENGHAPUS FILTER UNIX DI SINI AGAR SEMUA DATA HARI INI TERTARIK DULU
+        // Terkadang tipe data dari ESP32 tidak cocok (String vs Int) sehingga filter Firebase gagal.
+        // Kita akan melakukan filter manual di dalam builder-nya.
+        stream:
+            FirebaseFirestore.instance.collection('sensor_logs').snapshots(),
         builder: (context, snapshot) {
           // Struktur Map: Jam -> (Menit -> List Data)
           Map<int, Map<int, List<double>>> hourlyMinuteWater = {};
@@ -130,24 +133,55 @@ class WaterLevelChart extends StatelessWidget {
           if (snapshot.hasData) {
             for (var doc in snapshot.data!.docs) {
               final data = doc.data() as Map<String, dynamic>;
-              if (data['timestamp'] == null || data['jarak_cm'] == null)
-                continue; // Pengecekan null agar aman
+              if (data['jarak_cm'] == null) continue;
 
               DateTime time;
-              if (data['timestamp'] is Timestamp) {
-                time = (data['timestamp'] as Timestamp).toDate();
+              int docUnix = 0;
+
+              // Logika ekstraksi Unix yang kebal terhadap tipe data String/Int
+              if (data['timestamp_unix'] != null) {
+                if (data['timestamp_unix'] is String) {
+                  docUnix = int.tryParse(data['timestamp_unix']) ?? 0;
+                } else {
+                  docUnix = (data['timestamp_unix'] as num).toInt();
+                }
+                time = DateTime.fromMillisecondsSinceEpoch(docUnix * 1000);
               } else {
-                time = DateTime.parse(data['timestamp'].toString());
+                String timeStr = data['waktu']?.toString() ??
+                    data['timestamp']?.toString() ??
+                    "";
+                if (timeStr.isEmpty) continue;
+                try {
+                  List<String> parts = timeStr.split(' ');
+                  List<String> dateParts = parts[0].split('/');
+                  time = DateTime.parse(
+                      "${dateParts[2]}-${dateParts[1]}-${dateParts[0]} ${parts.length > 1 ? parts[1] : '00:00:00'}");
+                  docUnix = time.millisecondsSinceEpoch ~/ 1000;
+                } catch (e) {
+                  time = DateTime.now();
+                  docUnix = time.millisecondsSinceEpoch ~/ 1000;
+                }
               }
 
-              final hour = time.hour;
-              final minute = time.minute;
+              // FILTER MANUAL DI SINI: Hanya proses data yang ada di rentang hari ini
+              if (docUnix >= startUnix && docUnix <= endUnix) {
+                final hour = time.hour;
+                final minute = time.minute;
 
-              hourlyMinuteWater.putIfAbsent(hour, () => {});
-              // MENGGUNAKAN jarak_cm
-              hourlyMinuteWater[hour]!
-                  .putIfAbsent(minute, () => [])
-                  .add((data['jarak_cm'] as num).toDouble());
+                hourlyMinuteWater.putIfAbsent(hour, () => {});
+
+                // Pastikan jarak_cm terbaca, entah ia String atau Double dari ESP32
+                double jarakValue = 0.0;
+                if (data['jarak_cm'] is String) {
+                  jarakValue = double.tryParse(data['jarak_cm']) ?? 0.0;
+                } else {
+                  jarakValue = (data['jarak_cm'] as num).toDouble();
+                }
+
+                hourlyMinuteWater[hour]!
+                    .putIfAbsent(minute, () => [])
+                    .add(jarakValue);
+              }
             }
           }
 
